@@ -24,9 +24,9 @@ class API() :
     ]
 
     response = requests.request("POST", url=self.repositoryResourceURL, data=payload, files=files)
-
-    print("File Resource ID: " + response.text)
-    return response.text
+    responseStr = response.text.strip('\"')
+    print("File Resource ID: " + responseStr)
+    return responseStr
   
   # ------------------------ POST METADATA --------------------------
   def uploadMetadataToRepo(self):
@@ -69,8 +69,9 @@ class API() :
 # ------------------------ GET METADATA OBJECT --------------------------
   def getMetadataFromRepo(self, rid):
     url = urllib.parse.urljoin(self.repositoryMetadataURL, rid)
+    print("url: " + url)
     response = requests.get(url)
-
+# http://localhost:4001/resources/metadata/526c0a0b-831b-4503-9119-c96eaa044b19
     # extracting data in json format
     mdo = json.loads(response.text)
     mdo_str = json.dumps(mdo, indent=2)
