@@ -64,8 +64,9 @@ class TestCases() :
         if(not os.path.isfile(filePath)):
             return False
         
+        success = os.path.getsize(filePath) > 0 # Check if file actually has contents
         os.remove(filePath)
-        return True
+        return success
     
 # Get a histogram of the resource we uploaded
     def testGetHistogram(self, rid):
@@ -73,9 +74,9 @@ class TestCases() :
         self.testApi.getHistogramFromRepo(rid, filePath)
         if(not os.path.isfile(filePath)):
             return False
-        
+        success = os.path.getsize(filePath) > 0 # Check if file actually has contents
         os.remove(filePath)
-        return True
+        return success
     
 # Get a resource relation graph for the resource we uploaded
     def testGetGraph(self, rid):
@@ -84,8 +85,9 @@ class TestCases() :
         if(not os.path.isfile(filePath)):
             return False
         
+        success = os.path.getsize(filePath) > 0 # Check if file actually has contents
         os.remove(filePath)
-        return True
+        return success
 
 # Upload metadata for a stream
     def testUploadMetadata(self):
@@ -99,7 +101,7 @@ class TestCases() :
 # Get the metadata object that we just uploaded info for
     def testGetStreamMDO(self, rid):
         stream_mdo = self.testApi.getMetadataFromRepo(rid)
-        if(stream_mdo["ResourceId"] != rid):
+        if(stream_mdo.get("ResourceId") != rid):
             return False
         
         mdo_ResourceInfo = stream_mdo["ResourceInfo"]
@@ -168,26 +170,30 @@ class TestCases() :
             }
         }
         pid = self.testApi.runMiner(body)
-        success = not "Error" in pid
-        return success, pid
+        if("Error" in pid):
+            return False
+        if(pid == "Invalid request. No miner with that ID. Config may be out of date, consider refreshing the frontend."):
+            return False
+        
+        return True, pid
+        
 
 
-# Test file miner status
+# Test file miner status - Can't test because it will remove it.
+    # def testFileMinerStatus(self, pid):
+    #     status_obj = self.testApi.getMinerStatus(pid)
+    #     status = status_obj["ProcessStatus"]
+    #     if(status == "running"): # Should not be complete or crash already
+    #         return True
+        
+    #     return False
+
+
+# Test miner status list
     def testMinerStatusList(self, pid):
         status_list = self.testApi.getMinerStatusList()
         if any (status_obj["ProcessId"] == pid for status_obj in status_list):
             return True
-        return False
-        
-
-
-# Test file miner status
-    def testFileMinerStatus(self, pid):
-        status_obj = self.testApi.getMinerStatus(pid)
-        status = status_obj["ProcessStatus"]
-        if(status == "complete" or status == "running"):
-            return True
-        
         return False
 
 
@@ -197,15 +203,16 @@ class TestCases() :
         rid = None # get from requesting status in a loop
         while(not rid):
             status_obj = self.testApi.getMinerStatus(pid)
-            rid = status_obj["ResourceId"]
+            rid = status_obj.get("ResourceId")
 
-        filePath = "./Downloads/minerFileResult.xes"
+        filePath = "./Downloads/minerFileResult.pnml"
         self.testApi.getResourceFromRepo(rid, filePath)
         if(not os.path.isfile(filePath)):
             return False
         
+        success = os.path.getsize(filePath) > 0 # Check if file actually has contents
         os.remove(filePath)
-        return True
+        return success
 
 
 
@@ -241,7 +248,7 @@ class TestCases() :
                 "HostInit": "http://localhost:4001/resources/metadata/",
                 "ResourceLabel": "Test Alphabet Stream",
                 "StreamTopic": "TestAlphabetStream",
-                "Overwrite": False
+                "Overwrite": True
             }
         }
         pid = self.testApi.runMiner(body)
@@ -250,13 +257,21 @@ class TestCases() :
             return False
         
         status_obj = self.testApi.getMinerStatus(pid)
-        rid = status_obj["ResourceId"]
-        status = status_obj["ProcessStatus"]
-        if(status == "crash" or status == "complete"):
-            return False    # Publishing output should never be "complete"
+        
+        rid = None # get from requesting status in a loop
+        while(not rid):
+            status_obj = self.testApi.getMinerStatus(pid)
+            rid = status_obj.get("ResourceId")
+            status = status_obj["ProcessStatus"]
+            if(status == "crash" or status == "complete"):
+                return False    # Publishing output should never be "complete"
+
+        # rid = status_obj.get("ResourceId")
         
         stream_mdo = self.testApi.getMetadataFromRepo(rid)
-        return success, stream_mdo
+        print("Publisher's stream MDO:")
+        print(stream_mdo)
+        return success, stream_mdo, pid
 
 
 
@@ -292,58 +307,74 @@ class TestCases() :
             status = status_obj["ProcessStatus"]
             if(status == "crash" or status == "complete"):
                 return False    # Dynamic output should never be "complete"
-            rid = status_obj["ResourceId"]
+            rid = status_obj.get("ResourceId")
 
         return True
 
+# Helper function to avoid repeating code
+    def isStreamResultUpdating(self, rid):
+        # Download result first time
+        filePath1 = "./Downloads/minerStreamResult1.json"
+        self.testApi.getResourceFromRepo(rid, filePath1)
+        if(not os.path.isfile(filePath1)):
+            return False
+        with open(filePath1) as file1:
+            data1 = json.load(file1)
 
-
+        time.sleep(5)   # Wait to guarantee that the repository has received updates
+        # Download result second time
+        filePath2 = "./Downloads/minerStreamResult2.json"
+        self.testApi.getResourceFromRepo(rid, filePath2)
+        if(not os.path.isfile(filePath2)):
+            return False
+        with open(filePath2) as file2:
+            data2 = json.load(file2)
+        
+        
+        filesEmpty = os.path.getsize(filePath1) <= 0 or os.path.getsize(filePath2) <= 0 # Check if file actually has contents
+        
+        os.remove(filePath1)
+        os.remove(filePath2)
+        if(filesEmpty or data1 == data2): # The results should have received updates while we waited
+            return False
+        return True
+    
 # Test stream miner get result from repo
     def testStreamMinerResult(self, pid):
         rid = None # get from requesting status in a loop
         while(not rid):
             status_obj = self.testApi.getMinerStatus(pid)
-            rid = status_obj["ResourceId"]
+            rid = status_obj.get("ResourceId")
 
-        # Download result first time
-        filePath1 = "./Downloads/minerStreamResult1.xes"
-        self.testApi.getResourceFromRepo(rid, filePath1)
-        if(not os.path.isfile(filePath1)):
-            return False
-        file1 = open(filePath1)
-        data1 = json.load(file1)
-
-        time.sleep(5)   # Wait to guarantee that the repository has received updates
-        # Download result second time
-        filePath2 = "./Downloads/minerStreamResult2.xes"
-        self.testApi.getResourceFromRepo(rid, filePath2)
-        if(not os.path.isfile(filePath2)):
-            return False
-        file2 = open(filePath2)
-        data2 = json.load(file2)
-        
-        if(data1 == data2): # The results should have received updates while we waited
-            return False
-        
-        os.remove(filePath1)
-        os.remove(filePath2)
-        return True
+        return self.isStreamResultUpdating(rid)
 
 
 
 # Test stream miner stop
-    def testStreamMinerStop(self, pid):
-        expResp = "Killed process with ID: " + pid
-        response = self.testApi.stopMinerAlgorithm(pid)
-        if(response != expResp):
+    def testStreamMinerStop(self, stream_pid, pub_pid):
+        rid = None
+        while(not rid):
+            status_obj = self.testApi.getMinerStatus(stream_pid)
+            rid = status_obj.get("ResourceId")
+
+        expStreamResp = "Killed process with ID: " + stream_pid
+        stream_response = self.testApi.stopMinerAlgorithm(stream_pid)
+        if(stream_response != expStreamResp):
+            print("Unexpected stream_response: " + stream_response)
+            return False
+        expPubResp = "Killed process with ID: " + pub_pid
+        pub_response = self.testApi.stopMinerAlgorithm(pub_pid)
+        if(pub_response != expPubResp):
+            print("Unexpected pub_response: " + pub_response)
             return False
         
         status_list = self.testApi.getMinerStatusList()
-        if any (status_obj["ProcessId"] == pid for status_obj in status_list):
+        if any (status_obj["ProcessId"] == stream_pid for status_obj in status_list):
+            print("Process id still exist after deleting it")
             return False
         
-        fileStillUpdating = self.testStreamMinerResult()
-        if (fileStillUpdating):
+        if (self.isStreamResultUpdating(rid)):
+            print("Stream is still updating")
             return False
         
         return True
@@ -352,45 +383,53 @@ class TestCases() :
 
 # Test get miner algorithm file
     def testGetAlgorithmFile(self, mid):
-        config_list = self.testApi.getMinerAlgorithmFile()
+        filePath = "./Downloads/minerAlgorithm.py"
+        self.testApi.getMinerAlgorithmFile(mid, filePath)
+        if(not os.path.isfile(filePath)):
+            return False
+        
+        success = os.path.getsize(filePath) > 0 # Check if file actually has contents
+        os.remove(filePath)
+        return success
 
 
 
 # Test get miner algorithm requirements
     def testGetRequirementsFile(self, mid):
-        config_list = self.testApi.getMinerRequirementsFile()
+        filePath = "./Downloads/minerRequirements.txt"
+        self.testApi.getMinerRequirementsFile(mid, filePath)
+        if(not os.path.isfile(filePath)):
+            return False
+        
+        success = os.path.getsize(filePath) > 0 # Check if file actually has contents
+        os.remove(filePath)
+        return success
 
 
 
 # Test run cloning action
     def testCloneStart(self):
-        body = {
+        body =   {
             "Host": "http://localhost:5000/shadow/",
             "Config": {
-                "MinerId": "1",
-                "MinerLabel": "Shadowed Alpha Miner",
+                "MinerId": "8",
+                "MinerLabel": "Alphabet Stream Publisher",
                 "Type": "Miner",
-                "MinerPath": "Miners/MinerAlphaPy",
-                "MinerFile": "MinerAlpha.py",
+                "MinerPath": "Miners/MqttPublisher",
+                "MinerFile": "MqttPublisher.py",
                 "Access": "Public",
-                "Shadow": True,
-                "ResourceInput": [
-                {
-                    "Name": "LogToRun",
-                    "FileExtension": "xes",
-                    "ResourceType": "EventLog"
-                }
-                ],
+                "Shadow": False,
+                "ResourceInput": [],
                 "ResourceOutput": {
-                "FileExtension": "pnml",
-                "ResourceType": "PetriNet"
+                    "ResourceType": "EventStream"
                 },
-                "MinerParameters":[]
+                "MinerParameters": []
             }
         }
-        pid = self.testApi.runMinerCloning(body)
-        success = not "error" in pid
-        return success, pid
+        cid = self.testApi.runMinerCloning(body)
+        print("cloning id: " + cid)
+        success = not "error" in cid
+        return success, cid
 
 
 
@@ -398,28 +437,50 @@ class TestCases() :
     def testCloneStatus(self, cid):
         status = self.testApi.getMinerCloningStatus(cid)
         if(status != "running"):
-            print(status)
+            print("cloning status test: " + status)
             return False
-
+        return True
 
 
 # Test run cloned miner algorithm
-    def testClonedAlgorithm(self, cid, file_mdo):
+    def testClonedAlgorithm(self, cid):
+        status = "running"
+        while(status != "complete"):
+            status = self.testApi.getMinerCloningStatus(cid)
+            if("Invalid request" in status):
+                return False
+
         body = {
             "MinerId": cid,
             "Input": {
-                "Resources": {
-                    "LogToRun": file_mdo # Take key from config?
-                },
+                "Resources": {},
                 "MinerParameters": {}
             },
             "Output": {
-                "Host": "http://localhost:4001/resources/",
+                "Host": "mqtt.eclipseprojects.io",
                 "HostInit": "http://localhost:4001/resources/metadata/",
-                "ResourceLabel": "Test Cloned Alpha PNML",
-                "FileExtension": "pnml" # Take from config?
+                "ResourceLabel": "Test Cloned Stream",
+                "StreamTopic": "TestClonedStream",
+                "Overwrite": True
             }
         }
         pid = self.testApi.runMiner(body)
-        success = not "Error" in pid
-        return success, pid
+        if("Error" in pid):
+            return False
+        
+        rid = None # get from requesting status in a loop
+        while(not rid):
+            status_obj = self.testApi.getMinerStatus(pid)
+            rid = status_obj.get("ResourceId")
+
+        
+        expResp = "Killed process with ID: " + pid
+        response = self.testApi.stopMinerAlgorithm(pid)
+        if(response != expResp):
+            return False
+        
+        file_mdo = self.testApi.getMetadataFromRepo(rid)
+        if(not file_mdo):
+            return False
+
+        return True

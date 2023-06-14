@@ -55,15 +55,15 @@ class Main() :
     success, file_pid = testCases.testFileMinerStart(file_mdo)
     minerTestDict["testFileMinerStart"] = success
 
+
+# Test file miner status - unable to test since it would remove it. Is tested as part of "testFileMinerResult" instead
+    # success = testCases.testFileMinerStatus(file_pid)
+    # minerTestDict["testFileMinerStatus"] = success
+
     
 # Test miner status list
     success = testCases.testMinerStatusList(file_pid)
     minerTestDict["testMinerStatusList"] = success
-
-
-# Test file miner status
-    success = testCases.testFileMinerStatus(file_pid)
-    minerTestDict["testFileMinerStatus"] = success
 
 
 
@@ -80,7 +80,7 @@ class Main() :
 
 
 # Test publisher via a file consuming miner start
-    success, stream_mdo = testCases.testPublisherStart()
+    success, stream_mdo, pub_pid = testCases.testPublisherStart()
     minerTestDict["testPublisherStart"] = success
 
 
@@ -104,19 +104,19 @@ class Main() :
 
 
 # Test stream miner stop
-    success = testCases.testStreamMinerStop(stream_pid)
+    success = testCases.testStreamMinerStop(stream_pid, pub_pid)
     minerTestDict["testStreamMinerStop"] = success
 
 
 
 # Test get miner algorithm file
-    success = testCases.testGetAlgorithmFile()
+    success = testCases.testGetAlgorithmFile("1")
     minerTestDict["testGetAlgorithmFile"] = success
 
 
 
 # Test get miner algorithm requirements
-    success = testCases.testGetRequirementsFile()
+    success = testCases.testGetRequirementsFile("1")
     minerTestDict["testGetRequirementsFile"] = success
 
 
@@ -134,7 +134,7 @@ class Main() :
 
 
 # Test run cloned miner algorithm
-    success = testCases.testClonedAlgorithm(cid, file_mdo)
+    success = testCases.testClonedAlgorithm(cid)
     minerTestDict["testClonedAlgorithm"] = success
 
 
@@ -144,7 +144,9 @@ class Main() :
     repoTestDictPretty = json.dumps(repoTestDict, indent=2)
     print(repoTestDictPretty)
 
-    print("\n\MINER TEST RESULTS: \n")
+    print("\n\nMINER TEST RESULTS: \n")
     minerTestDictPretty = json.dumps(minerTestDict, indent=2)
     print(minerTestDictPretty)
 
+
+# Consider if we should do additional cleanup afterwards?

@@ -21,14 +21,14 @@ class API() :
       ('file',('ML4_log.xes',open('./Resources/ML4_log.xes','rb'),'application/octet-stream'))
     ]
 
-    response = requests.request("POST", url=self.repositoryResourceURL, data=payload, files=files)
+    response = requests.post(url=self.repositoryResourceURL, data=payload, files=files)
     responseStr = response.text.strip('\"')
     print("File Resource ID: " + responseStr)
     return responseStr
   
   # ------------------------ POST METADATA --------------------------
   def uploadMetadataToRepo(self, payload):
-    response = requests.request("POST", self.repositoryMetadataURL, data=payload)
+    response = requests.post(self.repositoryMetadataURL, data=payload)
     print("uploadMetadataToRepo: " + response.text)
     responseStr = response.text.strip('\"')
     print("MDO Resource ID: " + responseStr)
@@ -42,12 +42,13 @@ class API() :
     with open(path, 'wb') as out_file:
       shutil.copyfileobj(response.raw, out_file)
 
-    print('The log was saved successfully')
+    print('The file was saved successfully')
 
 # ------------------------ GET HISTOGRAM --------------------------
   def getHistogramFromRepo(self, rid, path):
     url = urllib.parse.urljoin(self.repositoryHistogramURL, rid)
-    response = requests.get(url=url, stream=True)
+    print("Requesting histogram from: " + url)
+    response = requests.post(url=url, stream=True)
 
     with open(path, 'wb') as out_file:
       shutil.copyfileobj(response.raw, out_file)
@@ -84,7 +85,7 @@ class API() :
 # ------------------------ GET FILTERED LIST OF METADATA OBJECTS --------------------------
   def getFilteredMDOList(self, filters):
     payload = json.dumps(filters)
-    response = requests.request("POST", self.repositoryFilterURL, data=payload)
+    response = requests.post(self.repositoryFilterURL, data=payload)
     mdo_list = json.loads(response.text)
     # mdo_list_str = json.dumps(mdo_list, indent=2)
     # print("Metadata list: " + str(mdo_list_str))
@@ -94,7 +95,7 @@ class API() :
   def getChildrenMDOList(self, rid):
     url = urllib.parse.urljoin(self.repositoryGraphURL, rid)
     url = urllib.parse.urljoin(url, "children")
-    response = requests.request("GET", url)
+    response = requests.get(url)
     mdo_list = json.loads(response.text)
     # mdo_list_str = json.dumps(mdo_list, indent=2)
     # print("Metadata list: " + str(mdo_list_str))
@@ -107,7 +108,7 @@ class API() :
   minerStopURL = "http://localhost:5000/stop/"
   minerShadowURL = "http://localhost:5000/shadow/"
   minerShadowRequirementsURL = "http://localhost:5000/shadow/requirements/"
-  minerShadowStatusURL = "http://localhost:5000/shaodw/status"
+  minerShadowStatusURL = "http://localhost:5000/shadow/status/"
 # ------------------------ GET MINER CONFIG --------------------------
   def getMinerConfigList(self):
     # url = urllib.parse.urljoin(self.minerConfig)
@@ -120,12 +121,25 @@ class API() :
 # ------------------------ RUN STREAM CONSUMING MINER --------------------------
   def runMiner(self, body):
     payload = json.dumps(body)
-    print("Run miner with payload: ")
-    print(payload)
-    response = requests.post(self.minerRunURL, data=payload)
+    # print("Run miner on " + self.minerRunURL + " with payload: ")
+    # print(payload)
+
+    headers = {
+      'Content-Type': 'application/json'
+    }
+    response = requests.post(self.minerRunURL, headers=headers, data=payload)
+
+    # response = requests.post(self.minerRunURL, data=payload)
     responseStr = response.text.strip('\"')
     print("runMiner pid: " + responseStr)
     return responseStr # PID
+  
+# ------------------------ GET SPECIFIC MINER ALGORITHM STATUS --------------------------
+  def getMinerStatus(self, pid):
+    url = urllib.parse.urljoin(self.minerStatusURL, pid)
+    response = requests.get(url)
+    status_obj = json.loads(response.text)
+    return status_obj
 
   
 # ------------------------ GET LIST OF MINER ALGORITHM STATUS --------------------------
@@ -133,15 +147,6 @@ class API() :
     response = requests.get(self.minerStatusURL)
     status_list = json.loads(response.text)
     return status_list
-  
-# ------------------------ GET SPECIFIC MINER ALGORITHM STATUS --------------------------
-  def getMinerStatus(self, pid):
-    url = urllib.parse.urljoin(self.minerStatusURL, pid)
-    print("Status URL: " + url)
-    response = requests.get(url)
-    print("Status response: " + response)
-    status_obj = json.loads(response.text)
-    return status_obj
   
 # ------------------------ STOP MINER ALGORITHM --------------------------
   def stopMinerAlgorithm(self, pid):
@@ -173,14 +178,18 @@ class API() :
 # ------------------------ RUN CLONING ACTION --------------------------
   def runMinerCloning(self, body):
     payload = json.dumps(body)
-    response = requests.post(self.minerShadowURL, data=payload)
+    headers = {
+      'Content-Type': 'application/json'
+    }
+    response = requests.post(self.minerShadowURL, headers=headers, data=payload)
     responseStr = response.text.strip('\"')
     return responseStr # PID
 
 # ------------------------ GET CLONING STATUS --------------------------
-  def getMinerCloningStatus(self, pid):
-    url = urllib.parse.urljoin(self.minerShadowStatusURL, pid)
+  def getMinerCloningStatus(self, cid):
+    url = urllib.parse.urljoin(self.minerShadowStatusURL, cid)
     response = requests.get(url)
+    # response = requests.get(url)
     # status_obj = json.loads(response.text)
     status = response.text
     return status
