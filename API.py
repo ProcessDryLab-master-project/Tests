@@ -9,6 +9,75 @@ from Utils import Utils
 # r = requests.get(url = repositoryResourceURL, params = PARAMS)
 
 class API() :
+
+# ------------------------ SERVICE REGISTRY STUFF --------------------------
+  srPingURL = "https://localhost:3000/ping/"
+  srMinersURL = "https://localhost:3000/miners/"
+  srRepositoriesURL = "https://localhost:3000/repositories/"
+  srConnectionsURL = "https://localhost:3000/connections/filters/"
+  srConfigsURL = "https://localhost:3000/config/filters/"
+  # Ping
+  def pingSr(self):
+    response = requests.get(self.srPingURL)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Add miner
+  def addminerSr(self, payload):
+    response = requests.post(self.srMinersURL, data=payload)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Get registered miner URLs
+  def getMinersSr(self):
+    response = requests.get(self.srMinersURL)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Delete miner
+  def deleteMinerSr(self, payload):
+    response = requests.delete(self.srMinersURL, data=payload)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Add repository
+  def addRepositorySr(self, payload):
+    response = requests.post(self.srRepositoriesURL, data=payload)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Get registered repository URLs
+  def getRepositoriesSr(self):
+    response = requests.get(self.srRepositoriesURL)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Delete repository
+  def deleteRepositorySr(self, payload):
+    response = requests.delete(self.srRepositoriesURL, data=payload)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Get filtered connection URLs
+  def addRepositorySr(self, payload):
+    response = requests.post(self.srConnectionsURL, data=payload)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Get filtered configs
+  def addRepositorySr(self, payload):
+    response = requests.post(self.srConfigsURL, data=payload)
+    responseStr = response.text.strip('\"')
+    return responseStr
+
 # ------------------------ REPOSITORY STUFF --------------------------
   repositoryResourceURL = "http://localhost:4001/resources/"
   repositoryMetadataURL = "http://localhost:4001/resources/metadata/"
@@ -16,9 +85,9 @@ class API() :
   repositoryHistogramURL = "http://localhost:4001/resources/histograms/"
   repositoryFilterURL = "http://localhost:4001/resources/metadata/filters"
 # ------------------------ POST RESOURCE --------------------------
-  def uploadResourceToRepo(self, payload):
+  def uploadResourceToRepo(self, filePath, payload):
     files=[
-      ('file',('ML4_log.xes',open('./Resources/ML4_log.xes','rb'),'application/octet-stream'))
+      ('file',('ML4_log.xes',open(filePath,'rb'),'application/octet-stream'))
     ]
 
     response = requests.post(url=self.repositoryResourceURL, data=payload, files=files)
@@ -38,32 +107,41 @@ class API() :
   def getResourceFromRepo(self, rid, path):
     url = urllib.parse.urljoin(self.repositoryResourceURL, rid)
     response = requests.get(url=url, stream=True)
+    if(response.text == "No resource with that ID"):
+      return False
 
     with open(path, 'wb') as out_file:
       shutil.copyfileobj(response.raw, out_file)
 
-    print('The file was saved successfully')
+    print('The file with rid ' + rid + ' was saved successfully')
+    return True
 
 # ------------------------ GET HISTOGRAM --------------------------
   def getHistogramFromRepo(self, rid, path):
     url = urllib.parse.urljoin(self.repositoryHistogramURL, rid)
     print("Requesting histogram from: " + url)
     response = requests.post(url=url, stream=True)
+    if(response.text == "No resource with that ID"):
+      return False
 
     with open(path, 'wb') as out_file:
       shutil.copyfileobj(response.raw, out_file)
 
-    print('The histogram was saved successfully')
+    print('The histogram for rid ' + rid + ' was saved successfully')
+    return True
 
 # ------------------------ GET RESOURCE GRAPH --------------------------
   def getGraphFromRepo(self, rid, path):
     url = urllib.parse.urljoin(self.repositoryGraphURL, rid)
     response = requests.get(url=url, stream=True)
+    if(response.text == "No resource with that ID"):
+      return False
 
     with open(path, 'wb') as out_file:
       shutil.copyfileobj(response.raw, out_file)
 
-    print('The graph was saved successfully')
+    print('The graph for rid ' + rid + ' was saved successfully')
+    return True
  
 
 
@@ -77,6 +155,8 @@ class API() :
     url = urllib.parse.urljoin(self.repositoryMetadataURL, rid)
     print("url: " + url)
     response = requests.get(url)
+    if(response.text == "No resource with that ID"):
+      return False
     mdo = json.loads(response.text)
     # mdo_str = json.dumps(mdo, indent=2)
     # print("Metadata object: " + str(mdo_str))

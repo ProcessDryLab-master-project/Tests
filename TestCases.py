@@ -8,50 +8,138 @@ import os
 class TestCases() :
     testApi = API()
     utils = Utils()
-    
+
+    # logMetadata = dict()
+    # streamMetadata = dict()
+    # def __init__(self, logMetadata, streamMetadata):  
+    #     self.logMetadata = logMetadata  
+    #     self.streamMetadata = streamMetadata
+
+# ------------------------ SERVICE REGISTRY TEST CASES --------------------------
+# Ping service registry
+    def testSRPing(self):
+        response = self.testApi.pingSr()
+        if(response == "PONG"):
+            return True
+        return False
+
+# Add miner to service registry
+    def testSRAddMiners(self):
+        expResp = ""
+        payload = {}
+        response = self.testApi.addminerSr(payload)
+        if(response == expResp):
+            return True
+        return False
+
+# Get miner URLs from service registry
+    def testSRGetMiners(self):
+        expResp = ""
+        response = self.testApi.getMinersSr()
+        if(response == expResp):
+            return True
+        return False
+
+# Delete miner from service registry
+    def testSRDeleteMiner(self):
+        expResp = ""
+        payload = {}
+        response = self.testApi.deleteMinerSr(payload)
+        if(response == expResp):
+            return True
+        return False
+
+# Add repository to service registry
+    def testSRAddRepository(self):
+        expResp = ""
+        payload = {}
+        response = self.testApi.addRepositorySr(payload)
+        if(response == expResp):
+            return True
+        return False
+
+# Get repository URLS from service registry
+    def testSRGetRepositories(self):
+        expResp = ""
+        response = self.testApi.getRepositoriesSr()
+        if(response == expResp):
+            return True
+        return False
+
+# Delete repository from service registry
+    def testSRDeleteRepository(self):
+        expResp = ""
+        payload = {}
+        response = self.testApi.deleteRepositorySr(payload)
+        if(response == expResp):
+            return True
+        return False
+
+# Get filtered connection URLS from service registry
+    def testSRFilteredConnections(self):
+        expResp = ""
+        payload = []
+        response = self.testApi.getFilteredConnectionsSr(payload)
+        if(response == expResp):
+            return True
+        return False
+
+# Get filtered configs from service registry
+    def testSRFilteredConfigs(self):
+        expResp = ""
+        payload = []
+        response = self.testApi.getFilteredConfigsSr(payload)
+        if(response == expResp):
+            return True
+        return False
+
 # ------------------------ REPOSITORY TEST CASES --------------------------
-    logMetadata = {
-        'FileExtension': 'xes',
-        'ResourceLabel': 'ML4_log',
-        'ResourceType': 'EventLog',
-        'Description': 'ML4 Test log'
-    }
-    streamMetadata = {
-        'Host': 'mqtt.eclipseprojects.io',
-        'StreamTopic': 'TestStream',
-        'ResourceLabel': 'Test Stream',
-        'ResourceType': 'EventStream',
-        'Description': 'Stream for testing',
-        'Overwrite': 'true'
-    }
+    # logMetadata = {
+    #     'FileExtension': 'xes',
+    #     'ResourceLabel': 'ML4_log',
+    #     'ResourceType': 'EventLog',
+    #     'Description': 'ML4 Test log'
+    # }
+    # streamMetadata = {
+    #     'Host': 'mqtt.eclipseprojects.io',
+    #     'StreamTopic': 'TestStream',
+    #     'ResourceLabel': 'Test Stream',
+    #     'ResourceType': 'EventStream',
+    #     'Description': 'Stream for testing',
+    #     'Overwrite': 'true'
+    # }
 
 # Upload file resource
-    def testFileUpload(self):
-        file_rid = self.testApi.uploadResourceToRepo(self.logMetadata)
+    def testFileUpload(self, filePath, logMetadata):
+        print("Sending file at path: " + filePath)
+        file_rid = self.testApi.uploadResourceToRepo(filePath, logMetadata)
         success = self.utils.isValidGUID(file_rid)
         return success, file_rid
     
 # Get metadata for the file resource we uploaded
-    def testGetFileMDO(self, rid):
+    def testGetFileMDO(self, rid, logMetadata):
         file_mdo = self.testApi.getMetadataFromRepo(rid)
-        # if(file_mdo == "No resource with that ID"):
-        #     return False
+        print("file_mdo: " + str(file_mdo))
+        if not file_mdo:
+            return False, {}
+        if(file_mdo == "No resource with that ID" or file_mdo == "Invalid FormData keys"):
+            return False, {}
         
-        if(file_mdo["ResourceId"] != rid):
-            return False
+        if(file_mdo.get("ResourceId") != rid):
+            return False, {}
         
         mdo_ResourceInfo = file_mdo["ResourceInfo"]
         if(not mdo_ResourceInfo):
             return False
-        if(mdo_ResourceInfo["ResourceLabel"] != self.logMetadata["ResourceLabel"]):
+        if(mdo_ResourceInfo.get("ResourceLabel") != logMetadata.get("ResourceLabel")):
             return False
-        if(mdo_ResourceInfo["ResourceType"] != self.logMetadata["ResourceType"]):
+        if(mdo_ResourceInfo.get("ResourceType") != logMetadata.get("ResourceType")):
             return False
-        if(mdo_ResourceInfo["FileExtension"] != self.logMetadata["FileExtension"]):
+        if(mdo_ResourceInfo.get("FileExtension") != logMetadata.get("FileExtension")):
             return False
-        if(mdo_ResourceInfo["Description"] != self.logMetadata["Description"]):
+        if(mdo_ResourceInfo.get("Description") != logMetadata.get("Description")):
             return False
-        if(mdo_ResourceInfo["Dynamic"] != False):
+        if(mdo_ResourceInfo.get("Dynamic") != False):
             return False
         
         # If all checks went through, return True.
@@ -60,38 +148,44 @@ class TestCases() :
 # Get the resource we just uploaded
     def testGetFile(self, rid):
         filePath = "./Downloads/downloadedResource.xes"
-        self.testApi.getResourceFromRepo(rid, filePath)
+        fileSaved = self.testApi.getResourceFromRepo(rid, filePath)
+        if not fileSaved:
+            return False
         if(not os.path.isfile(filePath)):
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        os.remove(filePath)
+        # os.remove(filePath)
         return success
     
 # Get a histogram of the resource we uploaded
     def testGetHistogram(self, rid):
         filePath = "./Downloads/downloadedHistogram.json"
-        self.testApi.getHistogramFromRepo(rid, filePath)
+        fileSaved = self.testApi.getHistogramFromRepo(rid, filePath)
+        if not fileSaved:
+            return False
         if(not os.path.isfile(filePath)):
             return False
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        os.remove(filePath)
+        # os.remove(filePath)
         return success
     
 # Get a resource relation graph for the resource we uploaded
     def testGetGraph(self, rid):
         filePath = "./Downloads/downloadedGraph.dot"
-        self.testApi.getGraphFromRepo(rid, filePath)
+        fileSaved = self.testApi.getGraphFromRepo(rid, filePath)
+        if not fileSaved:
+            return False
         if(not os.path.isfile(filePath)):
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        os.remove(filePath)
+        # os.remove(filePath)
         return success
 
 # Upload metadata for a stream
-    def testUploadMetadata(self):
-        mdo_rid = self.testApi.uploadMetadataToRepo(self.streamMetadata)
+    def testUploadMetadata(self, streamMetadata):
+        mdo_rid = self.testApi.uploadMetadataToRepo(streamMetadata)
         success = self.utils.isValidGUID(mdo_rid)
         return success, mdo_rid
             
@@ -99,25 +193,31 @@ class TestCases() :
         #     print("Post EventStream MDO test failed")
 
 # Get the metadata object that we just uploaded info for
-    def testGetStreamMDO(self, rid):
+    def testGetStreamMDO(self, rid, streamMetadata):
         stream_mdo = self.testApi.getMetadataFromRepo(rid)
+        print("stream_mdo: " + str(stream_mdo))
+        if not stream_mdo:
+            return False, {}
+        if(stream_mdo == "No resource with that ID" or stream_mdo == "Invalid FormData keys"):
+            return False, {}
+        
         if(stream_mdo.get("ResourceId") != rid):
             return False
         
         mdo_ResourceInfo = stream_mdo["ResourceInfo"]
         if(not mdo_ResourceInfo):
             return False
-        if(mdo_ResourceInfo["ResourceLabel"] != self.streamMetadata["ResourceLabel"]):
+        if(mdo_ResourceInfo.get("ResourceLabel") != streamMetadata.get("ResourceLabel")):
             return False
-        if(mdo_ResourceInfo["ResourceType"] != self.streamMetadata["ResourceType"]):
+        if(mdo_ResourceInfo.get("ResourceType") != streamMetadata.get("ResourceType")):
             return False
-        if(mdo_ResourceInfo["Host"] != self.streamMetadata["Host"]):
+        if(mdo_ResourceInfo.get("Host") != streamMetadata.get("Host")):
             return False
-        if(mdo_ResourceInfo["StreamTopic"] != self.streamMetadata["StreamTopic"]):
+        if(mdo_ResourceInfo.get("StreamTopic") != streamMetadata.get("StreamTopic")):
             return False
-        if(mdo_ResourceInfo["Description"] != self.streamMetadata["Description"]):
+        if(mdo_ResourceInfo.get("Description") != streamMetadata.get("Description")):
             return False
-        if(mdo_ResourceInfo["Dynamic"] != False):
+        if(mdo_ResourceInfo.get("Dynamic") != False):
             return False
         
         # If all checks went through, return True.
@@ -125,11 +225,7 @@ class TestCases() :
 
 
 # Get filtered list of metadata objects without EventStream
-    def testFilteredMetadataList(self):
-        filters = [
-            "EventLog",
-            "Histogram"
-        ]
+    def testFilteredMetadataList(self, filters):
         mdo_list = self.testApi.getFilteredMDOList(filters)
         if any (mdo["ResourceInfo"]["ResourceType"] == "EventStream" for mdo in mdo_list):
             return False
@@ -214,14 +310,9 @@ class TestCases() :
         os.remove(filePath)
         return success
 
-
-
-# Test file miner stop (start and stop a file miner)
-    def testFileMinerStop(self, mdo):
-        success, pid = self.testFileMinerStart(mdo)
-        if(not success):
-            return False
-        
+    
+    # Test file miner stop (start and stop a file miner)
+    def testFileMinerStop(self, pid):
         expResp = "Killed process with ID: " + pid
         response = self.testApi.stopMinerAlgorithm(pid)
         if(response != expResp):
@@ -232,6 +323,25 @@ class TestCases() :
             return False
         
         return True
+
+
+# Test file miner start and stop (start and stop a file miner)
+    def testFileMinerStartAndStop(self, mdo):
+        success, pid = self.testFileMinerStart(mdo)
+        if(not success):
+            return False
+        
+        return self.testFileMinerStop(pid)
+        # expResp = "Killed process with ID: " + pid
+        # response = self.testApi.stopMinerAlgorithm(pid)
+        # if(response != expResp):
+        #     return False
+        
+        # status_list = self.testApi.getMinerStatusList()
+        # if any (status_obj["ProcessId"] == pid for status_obj in status_list):
+        #     return False
+        
+        # return True
 
 
 
@@ -271,6 +381,8 @@ class TestCases() :
         stream_mdo = self.testApi.getMetadataFromRepo(rid)
         print("Publisher's stream MDO:")
         print(stream_mdo)
+        if(not stream_mdo):
+            return False
         return success, stream_mdo, pid
 
 
@@ -408,24 +520,7 @@ class TestCases() :
 
 
 # Test run cloning action
-    def testCloneStart(self):
-        body =   {
-            "Host": "http://localhost:5000/shadow/",
-            "Config": {
-                "MinerId": "8",
-                "MinerLabel": "Alphabet Stream Publisher",
-                "Type": "Miner",
-                "MinerPath": "Miners/MqttPublisher",
-                "MinerFile": "MqttPublisher.py",
-                "Access": "Public",
-                "Shadow": False,
-                "ResourceInput": [],
-                "ResourceOutput": {
-                    "ResourceType": "EventStream"
-                },
-                "MinerParameters": []
-            }
-        }
+    def testCloneStart(self, body):
         cid = self.testApi.runMinerCloning(body)
         print("cloning id: " + cid)
         success = not "error" in cid
