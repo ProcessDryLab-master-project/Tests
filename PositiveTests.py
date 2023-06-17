@@ -28,6 +28,14 @@ class Positive() :
         'Description': 'Updated Stream for testing',
         'Overwrite': 'true'
     }
+    streamMetadataChild = {
+        'Host': 'mqtt.eclipseprojects.io',
+        'StreamTopic': 'TestStreamChild',
+        'ResourceLabel': 'Test Stream Child',
+        'ResourceType': 'EventStream',
+        'Description': 'Child of stream for testing',
+        'Overwrite': 'true'
+    }
     filters = [
         "EventLog",
         "Histogram"
@@ -118,10 +126,6 @@ class Positive() :
         success, file_rid = testCases.testFileUpload('./Resources/ML4_log.xes', self.logMetadata)
         repoTestDict["testFileUpload"] = success
 
-    # Update file resource
-        success, file_rid = testCases.testFileUpdate('./Resources/ML4_log.xes', self.logMetadata)
-        repoTestDict["testFileUpload"] = success
-
     # Get metadata for the file resource we uploaded
         success, file_mdo = testCases.testGetFileMDO(file_rid, self.logMetadata)
         repoTestDict["testGetFileMDO"] = success
@@ -129,6 +133,10 @@ class Positive() :
     # Get the resource we just uploaded
         success = testCases.testGetFile(file_rid)
         repoTestDict["testGetFile"] = success
+
+    # Update file resource
+        success = testCases.testFileUpdate('./Resources/ML4_log.xes', self.logMetadata)
+        repoTestDict["testFileUpload"] = success
 
     # Get a histogram of the resource we uploaded
         success = testCases.testGetHistogram(file_rid)
@@ -142,21 +150,21 @@ class Positive() :
         success, mdo_rid = testCases.testUploadMetadata(self.streamMetadata)
         repoTestDict["testUploadMetadata"] = success
 
-    # Update metadata for a stream
-        success, mdo_rid = testCases.testUpdateMetadata(self.streamMetadataUpdate)
-        repoTestDict["testUploadMetadata"] = success
-
     # Get the metadata object that we just uploaded info for
         success = testCases.testGetStreamMDO(mdo_rid, self.streamMetadataUpdate)
         repoTestDict["testGetStreamMDO"] = success
+
+    # Update metadata for a stream
+        success = testCases.testUpdateMetadata(self.streamMetadataUpdate)
+        repoTestDict["testUploadMetadata"] = success
 
     # Test filtered list of metadata objects
         success = testCases.testFilteredMetadataList(self.filters)
         repoTestDict["testFilteredMetadataList"] = success
 
     # Test list of children metadata objects
-        # success = testCases.testChildrenMetadataList(mdo_rid)
-        # repoTestDict["testChildrenMetadataList"] = success
+        success = testCases.testChildrenMetadataList(mdo_rid, self.streamMetadataChild)
+        repoTestDict["testChildrenMetadataList"] = success
         
 
     # ------------------------ MINER TEST RUNS --------------------------

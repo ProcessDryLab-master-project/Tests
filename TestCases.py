@@ -161,8 +161,9 @@ class TestCases() :
     def testFileUpdate(self, filePath, logMetadata):
         print("Updating file at path: " + filePath)
         file_rid = self.testApi.updateResourceOnRepo(filePath, logMetadata)
-        success = self.utils.isValidGUID(file_rid)
-        return success, file_rid
+        if not self.utils.isValidGUID(file_rid):
+            return False
+        return self.testGetFile(file_rid)
     
 # Get metadata for the file resource we uploaded
     def testGetFileMDO(self, rid, logMetadata):
@@ -243,8 +244,9 @@ class TestCases() :
 # Update metadata for a stream
     def testUpdateMetadata(self, streamMetadata):
         mdo_rid = self.testApi.updateMetadataOnRepo(streamMetadata)
-        success = self.utils.isValidGUID(mdo_rid)
-        return success, mdo_rid
+        if not self.utils.isValidGUID(mdo_rid):
+            return False
+        return self.testGetStreamMDO(mdo_rid, streamMetadata)
 
 # Get the metadata object that we just uploaded info for
     def testGetStreamMDO(self, rid, streamMetadata):
@@ -274,6 +276,10 @@ class TestCases() :
         if(mdo_ResourceInfo.get("Dynamic") != False):
             return False
         
+        mdo_GenerationTree = stream_mdo.get("GenerationTree")
+        if(mdo_GenerationTree.get("Parents") != streamMetadata.get("Parents")):
+            return False
+        
         # If all checks went through, return True.
         return True
 
@@ -286,6 +292,25 @@ class TestCases() :
         if not any (mdo["ResourceInfo"]["ResourceType"] == "EventLog" for mdo in mdo_list):
             return False
         if not any (mdo["ResourceInfo"]["ResourceType"] == "Histogram" for mdo in mdo_list):
+            return False
+        
+        return True
+    
+# Test metadata children
+    def testChildrenMetadataList(self, mdo_rid_parent, metadata_child):
+        metadata_child["Parents"] = [
+            {
+                "ResourceId": mdo_rid_parent,
+                "UsedAs": "Test"
+            }
+        ]
+        mdo_rid_child = self.testUploadMetadata(metadata_child)
+        upload_success = self.testGetStreamMDO(mdo_rid_child, metadata_child)
+        if not upload_success:
+            return False
+        
+        mdo_list = self.testApi.getChildrenMDOList(mdo_rid_parent)
+        if not any (mdo.get("ResourceId") == mdo_rid_child for mdo in mdo_list):
             return False
         
         return True
