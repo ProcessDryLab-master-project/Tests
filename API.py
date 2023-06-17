@@ -207,7 +207,7 @@ class API() :
   
 # ------------------------ GET CHILDREN METADATA OBJECT LIST --------------------------
   def getChildrenMDOList(self, rid):
-    url = urllib.parse.urljoin(self.repositoryGraphURL, rid)
+    url = urllib.parse.urljoin(self.repositoryMetadataURL, rid)
     url = urllib.parse.urljoin(url, "children")
     response = requests.get(url)
     mdo_list = json.loads(response.text)
