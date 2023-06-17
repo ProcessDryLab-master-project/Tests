@@ -20,6 +20,14 @@ class Positive() :
         'Description': 'Stream for testing',
         'Overwrite': 'true'
     }
+    streamMetadataUpdate = {
+        'Host': 'mqtt.eclipseprojects.io',
+        'StreamTopic': 'TestStream',
+        'ResourceLabel': 'Updated Test Stream',
+        'ResourceType': 'EventStream',
+        'Description': 'Updated Stream for testing',
+        'Overwrite': 'true'
+    }
     filters = [
         "EventLog",
         "Histogram"
@@ -61,7 +69,7 @@ class Positive() :
 
         
     # SR get list of miner URLs
-        success = testCases.testSRGetMiners()
+        success = testCases.testSRGetMiner()
         SRTestDict["testSRGetMiners"] = success
 
         
@@ -98,8 +106,20 @@ class Positive() :
     
 
     # ------------------------ REPOSITORY TEST RUNS --------------------------
+    # Repository ping
+        success = testCases.testRepoPing()
+        SRTestDict["testRepoPing"] = success
+
+    # Repository config
+        success = testCases.testRepoConfig()
+        SRTestDict["testRepoConfig"] = success
+
     # Upload file resource
         success, file_rid = testCases.testFileUpload('./Resources/ML4_log.xes', self.logMetadata)
+        repoTestDict["testFileUpload"] = success
+
+    # Update file resource
+        success, file_rid = testCases.testFileUpdate('./Resources/ML4_log.xes', self.logMetadata)
         repoTestDict["testFileUpload"] = success
 
     # Get metadata for the file resource we uploaded
@@ -122,8 +142,12 @@ class Positive() :
         success, mdo_rid = testCases.testUploadMetadata(self.streamMetadata)
         repoTestDict["testUploadMetadata"] = success
 
+    # Update metadata for a stream
+        success, mdo_rid = testCases.testUpdateMetadata(self.streamMetadataUpdate)
+        repoTestDict["testUploadMetadata"] = success
+
     # Get the metadata object that we just uploaded info for
-        success = testCases.testGetStreamMDO(mdo_rid, self.streamMetadata)
+        success = testCases.testGetStreamMDO(mdo_rid, self.streamMetadataUpdate)
         repoTestDict["testGetStreamMDO"] = success
 
     # Test filtered list of metadata objects
@@ -136,6 +160,11 @@ class Positive() :
         
 
     # ------------------------ MINER TEST RUNS --------------------------
+    # Miner ping
+        success = testCases.testMinerPing()
+        SRTestDict["testMinerPing"] = success
+
+
     # Test miner config list
         success = testCases.testGetMinerConfig()
         minerTestDict["testGetMinerConfig"] = success

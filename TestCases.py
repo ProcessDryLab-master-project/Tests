@@ -19,31 +19,38 @@ class TestCases() :
 # Ping service registry
     def testSRPing(self):
         response = self.testApi.pingSr()
-        if(response == "PONG"):
+        if(response == "pong"):
             return True
         return False
 
 # Add miner to service registry
     def testSRAddMiners(self):
-        expResp = ""
+        testUrl = "miner" # Not an actual URL, just a test
+        expResp = "Node " + testUrl + " added"
+        {
+            "Host": testUrl
+        }
         payload = {}
         response = self.testApi.addminerSr(payload)
-        if(response == expResp):
+        if(expResp in response):
             return True
         return False
 
 # Get miner URLs from service registry
-    def testSRGetMiners(self):
-        expResp = ""
+    def testSRGetMiner(self):
+        expResp = "miner"
         response = self.testApi.getMinersSr()
-        if(response == expResp):
+        if(expResp in response):
             return True
         return False
 
 # Delete miner from service registry
     def testSRDeleteMiner(self):
-        expResp = ""
-        payload = {}
+        testUrl = "miner" # Not an actual URL, just a test
+        expResp = "Node " + testUrl + " successfully removed"
+        payload = {
+            "Host": "test"
+        }
         response = self.testApi.deleteMinerSr(payload)
         if(response == expResp):
             return True
@@ -51,25 +58,33 @@ class TestCases() :
 
 # Add repository to service registry
     def testSRAddRepository(self):
-        expResp = ""
+        testUrl = "repository" # Not an actual URL, just a test
+        expResp = "Node " + testUrl + " added"
+        {
+            "Host": testUrl
+        }
         payload = {}
         response = self.testApi.addRepositorySr(payload)
-        if(response == expResp):
+        if(expResp in response):
             return True
         return False
+    
 
 # Get repository URLS from service registry
     def testSRGetRepositories(self):
-        expResp = ""
+        expResp = "repository"
         response = self.testApi.getRepositoriesSr()
-        if(response == expResp):
+        if(expResp in response):
             return True
         return False
 
 # Delete repository from service registry
     def testSRDeleteRepository(self):
-        expResp = ""
-        payload = {}
+        testUrl = "repository" # Not an actual URL, just a test
+        expResp = "Node " + testUrl + " successfully removed"
+        payload = {
+            "Host": "test"
+        }
         response = self.testApi.deleteRepositorySr(payload)
         if(response == expResp):
             return True
@@ -77,21 +92,33 @@ class TestCases() :
 
 # Get filtered connection URLS from service registry
     def testSRFilteredConnections(self):
-        expResp = ""
-        payload = []
+        minerUrl = "http://localhost:5000"
+        repositoryUrl = "http://localhost:4001"
+        payload = [
+            minerUrl,
+            repositoryUrl
+        ]
         response = self.testApi.getFilteredConnectionsSr(payload)
-        if(response == expResp):
-            return True
-        return False
+        if not any (status_obj["host"] == minerUrl for status_obj in response):
+            return False
+        if not any (status_obj["host"] == repositoryUrl for status_obj in response):
+            return False
+        return True
 
 # Get filtered configs from service registry
     def testSRFilteredConfigs(self):
-        expResp = ""
-        payload = []
+        minerUrl = "http://localhost:5000"
+        repositoryUrl = "http://localhost:4001"
+        payload = [
+            minerUrl,
+            repositoryUrl
+        ]
         response = self.testApi.getFilteredConfigsSr(payload)
-        if(response == expResp):
-            return True
-        return False
+        if not any (status_obj["host"] == minerUrl for status_obj in response):
+            return False
+        if not any (status_obj["host"] == repositoryUrl for status_obj in response):
+            return False
+        return True
 
 # ------------------------ REPOSITORY TEST CASES --------------------------
     # logMetadata = {
@@ -109,10 +136,31 @@ class TestCases() :
     #     'Overwrite': 'true'
     # }
 
+# Repository ping
+    def testRepoPing(self):
+        response = self.testApi.pingRepo()
+        if(response == "pong"):
+            return True
+        return False
+
+# Repository config
+    def testRepoConfig(self):
+        response = self.testApi.getRepoConfig()
+        if(response.get("Type") == "Repository"):
+            return True
+        return False
+
 # Upload file resource
     def testFileUpload(self, filePath, logMetadata):
         print("Sending file at path: " + filePath)
         file_rid = self.testApi.uploadResourceToRepo(filePath, logMetadata)
+        success = self.utils.isValidGUID(file_rid)
+        return success, file_rid
+
+# Update file resource
+    def testFileUpdate(self, filePath, logMetadata):
+        print("Updating file at path: " + filePath)
+        file_rid = self.testApi.updateResourceOnRepo(filePath, logMetadata)
         success = self.utils.isValidGUID(file_rid)
         return success, file_rid
     
@@ -192,6 +240,12 @@ class TestCases() :
         # if(mdo_rid == "An EventStream for that StreamTopic and Host already exist. Use the Overwrite key if you wish to change it."):
         #     print("Post EventStream MDO test failed")
 
+# Update metadata for a stream
+    def testUpdateMetadata(self, streamMetadata):
+        mdo_rid = self.testApi.updateMetadataOnRepo(streamMetadata)
+        success = self.utils.isValidGUID(mdo_rid)
+        return success, mdo_rid
+
 # Get the metadata object that we just uploaded info for
     def testGetStreamMDO(self, rid, streamMetadata):
         stream_mdo = self.testApi.getMetadataFromRepo(rid)
@@ -238,10 +292,18 @@ class TestCases() :
     
     
 # ------------------------ MINER TEST CASES --------------------------
+# Miner ping
+    def testMinerPing(self):
+        response = self.testApi.pingMiner()
+        if(response == "pong"):
+            return True
+        return False
+    
+
 # Test miner config list
     def testGetMinerConfig(self):
         config_list = self.testApi.getMinerConfigList()
-        if any (config["MinerId"] == "1" for config in config_list):
+        if any (config.get("MinerId") == "1" for config in config_list):
             return True
         
         return False

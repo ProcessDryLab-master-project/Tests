@@ -66,25 +66,40 @@ class API() :
   
   
   # Get filtered connection URLs
-  def addRepositorySr(self, payload):
+  def getFilteredConnectionsSr(self, payload):
     response = requests.post(self.srConnectionsURL, data=payload)
     responseStr = response.text.strip('\"')
     return responseStr
   
   
   # Get filtered configs
-  def addRepositorySr(self, payload):
+  def getFilteredConfigsSr(self, payload):
     response = requests.post(self.srConfigsURL, data=payload)
     responseStr = response.text.strip('\"')
     return responseStr
 
 # ------------------------ REPOSITORY STUFF --------------------------
+  repositoryPingURL = "http://localhost:4001/ping"
+  repositoryConfigURL = "http://localhost:4001/configurations"
   repositoryResourceURL = "http://localhost:4001/resources/"
   repositoryMetadataURL = "http://localhost:4001/resources/metadata/"
   repositoryGraphURL = "http://localhost:4001/resources/graphs/"
   repositoryHistogramURL = "http://localhost:4001/resources/histograms/"
   repositoryFilterURL = "http://localhost:4001/resources/metadata/filters"
-# ------------------------ POST RESOURCE --------------------------
+  # Ping
+  def pingRepo(self):
+    response = requests.get(self.repositoryPingURL)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  
+  # Config
+  def getRepoConfig(self):
+    response = requests.get(self.repositoryConfigURL)
+    responseStr = response.text.strip('\"')
+    return responseStr
+  
+  # POST resource
   def uploadResourceToRepo(self, filePath, payload):
     files=[
       ('file',('ML4_log.xes',open(filePath,'rb'),'application/octet-stream'))
@@ -95,9 +110,28 @@ class API() :
     print("File Resource ID: " + responseStr)
     return responseStr
   
-  # ------------------------ POST METADATA --------------------------
+  # POST Metadata
   def uploadMetadataToRepo(self, payload):
     response = requests.post(self.repositoryMetadataURL, data=payload)
+    print("uploadMetadataToRepo: " + response.text)
+    responseStr = response.text.strip('\"')
+    print("MDO Resource ID: " + responseStr)
+    return responseStr
+  
+  # PUT resource
+  def updateResourceOnRepo(self, filePath, payload):
+    files=[
+      ('file',('ML4_log.xes',open(filePath,'rb'),'application/octet-stream'))
+    ]
+
+    response = requests.put(url=self.repositoryResourceURL, data=payload, files=files)
+    responseStr = response.text.strip('\"')
+    print("File Resource ID: " + responseStr)
+    return responseStr
+  
+  # PUT Metadata
+  def updateMetadataOnRepo(self, payload):
+    response = requests.put(self.repositoryMetadataURL, data=payload)
     print("uploadMetadataToRepo: " + response.text)
     responseStr = response.text.strip('\"')
     print("MDO Resource ID: " + responseStr)
@@ -182,6 +216,7 @@ class API() :
     return mdo_list
   
 # ------------------------ MINER STUFF --------------------------
+  minerPingURL = "http://localhost:5000/ping/"
   minerConfigURL = "http://localhost:5000/configurations/"
   minerRunURL = "http://localhost:5000/miner/"
   minerStatusURL = "http://localhost:5000/status/"
@@ -189,6 +224,13 @@ class API() :
   minerShadowURL = "http://localhost:5000/shadow/"
   minerShadowRequirementsURL = "http://localhost:5000/shadow/requirements/"
   minerShadowStatusURL = "http://localhost:5000/shadow/status/"
+
+  # Ping
+  def pingMiner(self):
+    response = requests.get(self.minerPingURL)
+    responseStr = response.text.strip('\"')
+    return responseStr
+
 # ------------------------ GET MINER CONFIG --------------------------
   def getMinerConfigList(self):
     # url = urllib.parse.urljoin(self.minerConfig)
