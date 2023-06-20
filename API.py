@@ -116,26 +116,28 @@ class API() :
   # POST Metadata
   def uploadMetadataToRepo(self, payload):
     response = requests.post(self.repositoryMetadataURL, data=payload)
-    print("uploadMetadataToRepo: " + response.text)
+    print("uploadMetadataToRepo response: " + response.text)
     responseStr = response.text.strip('\"')
     print("MDO Resource ID: " + responseStr)
     return responseStr
   
   # PUT resource
-  def updateResourceOnRepo(self, filePath, payload):
+  def updateResourceOnRepo(self, rid, filePath):
+    url = urllib.parse.urljoin(self.repositoryResourceURL, rid)
     files=[
       ('file',('ML4_log.xes',open(filePath,'rb'),'application/octet-stream'))
     ]
 
-    response = requests.put(url=self.repositoryResourceURL, data=payload, files=files)
+    response = requests.put(url=url, files=files)
     responseStr = response.text.strip('\"')
     print("File Resource ID: " + responseStr)
     return responseStr
   
   # PUT Metadata
-  def updateMetadataOnRepo(self, payload):
-    response = requests.put(self.repositoryMetadataURL, data=payload)
-    print("updateMetadataOnRepo: " + response.text)
+  def updateMetadataOnRepo(self, rid, payload):
+    url = urllib.parse.urljoin(self.repositoryMetadataURL, rid)
+    response = requests.put(url, data=payload)
+    print("updateMetadataOnRepo response: " + response.text)
     responseStr = response.text.strip('\"')
     print("MDO Resource ID: " + responseStr)
     return responseStr
@@ -198,8 +200,6 @@ class API() :
     if(response.text == "No resource with that ID"):
       return False
     mdo = json.loads(response.text)
-    # mdo_str = json.dumps(mdo, indent=2)
-    # print("Metadata object: " + str(mdo_str))
     return mdo
   
 # ------------------------ GET FILTERED LIST OF METADATA OBJECTS --------------------------
@@ -207,18 +207,15 @@ class API() :
     payload = json.dumps(filters)
     response = requests.post(self.repositoryFilterURL, data=payload)
     mdo_list = json.loads(response.text)
-    # mdo_list_str = json.dumps(mdo_list, indent=2)
-    # print("Metadata list: " + str(mdo_list_str))
     return mdo_list
   
 # ------------------------ GET CHILDREN METADATA OBJECT LIST --------------------------
   def getChildrenMDOList(self, rid):
     url = urllib.parse.urljoin(self.repositoryMetadataURL, rid)
-    url = urllib.parse.urljoin(url, "children")
+    url = urllib.parse.urljoin(url + "/", "children")
     response = requests.get(url)
+    print("Request to url: " + str(url) + " gave response: " + response.text)
     mdo_list = json.loads(response.text)
-    # mdo_list_str = json.dumps(mdo_list, indent=2)
-    # print("Metadata list: " + str(mdo_list_str))
     return mdo_list
   
 # ------------------------ MINER STUFF --------------------------

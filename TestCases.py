@@ -166,9 +166,9 @@ class TestCases() :
         return success, file_rid
 
 # Update file resource
-    def testFileUpdate(self, filePath, logMetadata):
+    def testFileUpdate(self, rid, filePath):
         print("Updating file at path: " + filePath)
-        file_rid = self.testApi.updateResourceOnRepo(filePath, logMetadata)
+        file_rid = self.testApi.updateResourceOnRepo(rid, filePath)
         if not self.utils.isValidGUID(file_rid):
             return False
         return self.testGetFile(file_rid)
@@ -215,7 +215,7 @@ class TestCases() :
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
         print("testGetFile success: " + str(success))
-        # os.remove(filePath)
+        os.remove(filePath)
         return success
     
 # Get a histogram of the resource we uploaded
@@ -227,7 +227,7 @@ class TestCases() :
         if(not os.path.isfile(filePath)):
             return False
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        # os.remove(filePath)
+        os.remove(filePath)
         return success
     
 # Get a resource relation graph for the resource we uploaded
@@ -240,7 +240,7 @@ class TestCases() :
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        # os.remove(filePath)
+        os.remove(filePath)
         return success
 
 # Upload metadata for a stream
@@ -253,9 +253,10 @@ class TestCases() :
         #     print("Post EventStream MDO test failed")
 
 # Update metadata for a stream
-    def testUpdateMetadata(self, streamMetadata):
-        mdo_rid = self.testApi.updateMetadataOnRepo(streamMetadata)
+    def testUpdateMetadata(self, rid, streamMetadata):
+        mdo_rid = self.testApi.updateMetadataOnRepo(rid, streamMetadata)
         if not self.utils.isValidGUID(mdo_rid):
+            print("mdo_rid invalid: " + str(mdo_rid))
             return False
         return self.testGetStreamMDO(mdo_rid, streamMetadata)
 
@@ -276,20 +277,30 @@ class TestCases() :
             return False
         if(mdo_ResourceInfo.get("ResourceLabel") != streamMetadata.get("ResourceLabel")):
             return False
-        if(mdo_ResourceInfo.get("ResourceType") != streamMetadata.get("ResourceType")):
-            return False
-        if(mdo_ResourceInfo.get("Host") != streamMetadata.get("Host")):
-            return False
-        if(mdo_ResourceInfo.get("StreamTopic") != streamMetadata.get("StreamTopic")):
-            return False
         if(mdo_ResourceInfo.get("Description") != streamMetadata.get("Description")):
             return False
         if(mdo_ResourceInfo.get("Dynamic") != False):
             return False
+        # Only verify the following if it's part of the formdata streamMetadata object
+        if(streamMetadata.get("ResourceType") and mdo_ResourceInfo.get("ResourceType") != streamMetadata.get("ResourceType")):
+            return False
+        if(streamMetadata.get("Host") and mdo_ResourceInfo.get("Host") != streamMetadata.get("Host")):
+            return False
+        if(streamMetadata.get("StreamTopic") and mdo_ResourceInfo.get("StreamTopic") != streamMetadata.get("StreamTopic")):
+            return False
         
         mdo_GenerationTree = stream_mdo.get("GenerationTree")
-        if(mdo_GenerationTree.get("Parents") != streamMetadata.get("Parents")):
-            return False
+        mdo_parents = mdo_GenerationTree.get("Parents")
+        mdi_parents = streamMetadata.get("Parents")
+        if(mdo_parents and mdi_parents):
+            print("\nParents exist, checking")
+            print("mdo parents: " + str(mdo_parents))
+            print("mdi parents: " + str(mdi_parents))
+
+            if(mdo_parents != json.loads(mdi_parents)):
+                print("They are not the same")
+                return False
+            print("Parents match")
         
         # If all checks went through, return True.
         return True
@@ -310,22 +321,27 @@ class TestCases() :
 # Test metadata children
     def testChildrenMetadataList(self, mdo_rid_parent, metadata_child):
         print("testChildrenMetadataList with parent rid: " + mdo_rid_parent)
-        metadata_child["Parents"] = [
+        metadata_child["Parents"] = json.dumps([
             {
                 "ResourceId": mdo_rid_parent,
                 "UsedAs": "Test"
             }
-        ]
-        # md_child_json = json.dumps(metadata_child)
+        ])
+        print("metadata_child:")
+        print(metadata_child)
         ridValid, mdo_rid_child = self.testUploadMetadata(metadata_child)
         if not ridValid:
+            print("ridValid: " + str(ridValid))
             return False
         upload_success = self.testGetStreamMDO(mdo_rid_child, metadata_child)
         if not upload_success:
+            print("upload_success: " + str(upload_success))
             return False
         
         mdo_list = self.testApi.getChildrenMDOList(mdo_rid_parent)
+        print("mdo_list: " + str(mdo_list))
         if not any (mdo.get("ResourceId") == mdo_rid_child for mdo in mdo_list):
+            print("Found no expected resource IDs")
             return False
         
         return True
@@ -411,7 +427,7 @@ class TestCases() :
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        # os.remove(filePath)
+        os.remove(filePath)
         return success
 
     
@@ -549,8 +565,8 @@ class TestCases() :
         
         filesEmpty = os.path.getsize(filePath1) <= 0 or os.path.getsize(filePath2) <= 0 # Check if file actually has contents
         
-        # os.remove(filePath1)
-        # os.remove(filePath2)
+        os.remove(filePath1)
+        os.remove(filePath2)
         if(filesEmpty or data1 == data2): # The results should have received updates while we waited
             return False
         return True
@@ -605,7 +621,7 @@ class TestCases() :
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        # os.remove(filePath)
+        os.remove(filePath)
         return success
 
 
@@ -618,7 +634,7 @@ class TestCases() :
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        # os.remove(filePath)
+        os.remove(filePath)
         return success
 
 
