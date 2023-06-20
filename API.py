@@ -1,7 +1,9 @@
 import requests
 import shutil
 import json
+import urllib3
 import urllib.parse
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from Utils import Utils
 
 # defining a params dict for the parameters to be sent to the API
@@ -18,65 +20,65 @@ class API() :
   srConfigsURL = "https://localhost:3000/config/filters/"
   # Ping
   def pingSr(self):
-    response = requests.get(self.srPingURL)
+    response = requests.get(self.srPingURL, verify=False)
     responseStr = response.text.strip('\"')
     return responseStr
   
   
   # Add miner
   def addminerSr(self, payload):
-    response = requests.post(self.srMinersURL, data=payload)
+    response = requests.post(self.srMinersURL, data=json.dumps(payload), verify=False)
     responseStr = response.text.strip('\"')
     return responseStr
   
   
   # Get registered miner URLs
   def getMinersSr(self):
-    response = requests.get(self.srMinersURL)
+    response = requests.get(self.srMinersURL, verify=False)
     responseStr = response.text.strip('\"')
     return responseStr
   
   
   # Delete miner
   def deleteMinerSr(self, payload):
-    response = requests.delete(self.srMinersURL, data=payload)
+    response = requests.delete(self.srMinersURL, data=json.dumps(payload), verify=False)
     responseStr = response.text.strip('\"')
     return responseStr
   
   
   # Add repository
   def addRepositorySr(self, payload):
-    response = requests.post(self.srRepositoriesURL, data=payload)
+    response = requests.post(self.srRepositoriesURL, data=json.dumps(payload), verify=False)
     responseStr = response.text.strip('\"')
     return responseStr
   
   
   # Get registered repository URLs
   def getRepositoriesSr(self):
-    response = requests.get(self.srRepositoriesURL)
+    response = requests.get(self.srRepositoriesURL, verify=False)
     responseStr = response.text.strip('\"')
     return responseStr
   
   
   # Delete repository
   def deleteRepositorySr(self, payload):
-    response = requests.delete(self.srRepositoriesURL, data=payload)
+    response = requests.delete(self.srRepositoriesURL, data=json.dumps(payload), verify=False)
     responseStr = response.text.strip('\"')
     return responseStr
   
   
   # Get filtered connection URLs
   def getFilteredConnectionsSr(self, payload):
-    response = requests.post(self.srConnectionsURL, data=payload)
-    responseStr = response.text.strip('\"')
-    return responseStr
+    response = requests.post(self.srConnectionsURL, data=json.dumps(payload), verify=False)
+    connectionList = json.loads(response.text)
+    return connectionList
   
   
   # Get filtered configs
   def getFilteredConfigsSr(self, payload):
-    response = requests.post(self.srConfigsURL, data=payload)
-    responseStr = response.text.strip('\"')
-    return responseStr
+    response = requests.post(self.srConfigsURL, data=json.dumps(payload), verify=False)
+    connectionList = json.loads(response.text)
+    return connectionList
 
 # ------------------------ REPOSITORY STUFF --------------------------
   repositoryPingURL = "http://localhost:4001/ping"
@@ -96,8 +98,9 @@ class API() :
   # Config
   def getRepoConfig(self):
     response = requests.get(self.repositoryConfigURL)
-    responseStr = response.text.strip('\"')
-    return responseStr
+    config = json.loads(response.text)
+    print("Repo config: " + str(config))
+    return config
   
   # POST resource
   def uploadResourceToRepo(self, filePath, payload):
@@ -132,7 +135,7 @@ class API() :
   # PUT Metadata
   def updateMetadataOnRepo(self, payload):
     response = requests.put(self.repositoryMetadataURL, data=payload)
-    print("uploadMetadataToRepo: " + response.text)
+    print("updateMetadataOnRepo: " + response.text)
     responseStr = response.text.strip('\"')
     print("MDO Resource ID: " + responseStr)
     return responseStr
@@ -144,8 +147,11 @@ class API() :
     if(response.text == "No resource with that ID"):
       return False
 
-    with open(path, 'wb') as out_file:
-      shutil.copyfileobj(response.raw, out_file)
+    with open(path, 'wb') as file:
+        file.write(response.content)
+
+    # with open(path, 'wb') as out_file:
+    #   shutil.copyfileobj(response.content, out_file)
 
     print('The file with rid ' + rid + ' was saved successfully')
     return True
@@ -158,8 +164,8 @@ class API() :
     if(response.text == "No resource with that ID"):
       return False
 
-    with open(path, 'wb') as out_file:
-      shutil.copyfileobj(response.raw, out_file)
+    with open(path, 'wb') as file:
+        file.write(response.content)
 
     print('The histogram for rid ' + rid + ' was saved successfully')
     return True
@@ -171,8 +177,8 @@ class API() :
     if(response.text == "No resource with that ID"):
       return False
 
-    with open(path, 'wb') as out_file:
-      shutil.copyfileobj(response.raw, out_file)
+    with open(path, 'wb') as file:
+        file.write(response.content)
 
     print('The graph for rid ' + rid + ' was saved successfully')
     return True
@@ -281,21 +287,31 @@ class API() :
   def getMinerAlgorithmFile(self, mid, path):
     url = urllib.parse.urljoin(self.minerShadowURL, mid)
     response = requests.get(url=url, stream=True)
-
-    with open(path, 'wb') as out_file:
-      shutil.copyfileobj(response.raw, out_file)
+    print("algorithm code: " + str(response.status_code))
+    if(response.status_code != 200):
+      print("algorithm response: " + str(response.content))
+      return response
+    
+    with open(path, 'wb') as file:
+        file.write(response.content)
 
     print('The algorithm file was saved successfully')
+    return True
 
 # ------------------------ GET REQUIREMENTS FILE --------------------------
   def getMinerRequirementsFile(self, mid, path):
     url = urllib.parse.urljoin(self.minerShadowRequirementsURL, mid)
     response = requests.get(url=url, stream=True)
-
-    with open(path, 'wb') as out_file:
-      shutil.copyfileobj(response.raw, out_file)
-
+    print("requirements code: " + str(response.status_code))
+    if(response.status_code != 200):
+      print("requirements response: " + str(response.content))
+      return response
+    
+    with open(path, 'wb') as file:
+        file.write(response.content)
+    
     print('The requirements file was saved successfully')
+    return True
 
 # ------------------------ RUN CLONING ACTION --------------------------
   def runMinerCloning(self, body):

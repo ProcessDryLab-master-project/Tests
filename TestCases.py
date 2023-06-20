@@ -19,6 +19,7 @@ class TestCases() :
 # Ping service registry
     def testSRPing(self):
         response = self.testApi.pingSr()
+        print("testSrPing response: " + str(response))
         if(response == "pong"):
             return True
         return False
@@ -27,19 +28,20 @@ class TestCases() :
     def testSRAddMiners(self):
         testUrl = "miner" # Not an actual URL, just a test
         expResp = "Node " + testUrl + " added"
-        {
+        payload = {
             "Host": testUrl
         }
-        payload = {}
         response = self.testApi.addminerSr(payload)
+        print("testSRAddMiners response: " + str(response))
         if(expResp in response):
             return True
         return False
 
 # Get miner URLs from service registry
-    def testSRGetMiner(self):
+    def testSRGetMiners(self):
         expResp = "miner"
         response = self.testApi.getMinersSr()
+        print("testSRGetMiner response: " + str(response))
         if(expResp in response):
             return True
         return False
@@ -49,9 +51,10 @@ class TestCases() :
         testUrl = "miner" # Not an actual URL, just a test
         expResp = "Node " + testUrl + " successfully removed"
         payload = {
-            "Host": "test"
+            "Host": testUrl
         }
         response = self.testApi.deleteMinerSr(payload)
+        print("testSRDeleteMiner response: " + str(response))
         if(response == expResp):
             return True
         return False
@@ -60,11 +63,11 @@ class TestCases() :
     def testSRAddRepository(self):
         testUrl = "repository" # Not an actual URL, just a test
         expResp = "Node " + testUrl + " added"
-        {
+        payload = {
             "Host": testUrl
         }
-        payload = {}
         response = self.testApi.addRepositorySr(payload)
+        print("testSRAddRepository response: " + str(response))
         if(expResp in response):
             return True
         return False
@@ -74,6 +77,7 @@ class TestCases() :
     def testSRGetRepositories(self):
         expResp = "repository"
         response = self.testApi.getRepositoriesSr()
+        print("testSRGetRepositories response: " + str(response))
         if(expResp in response):
             return True
         return False
@@ -83,9 +87,10 @@ class TestCases() :
         testUrl = "repository" # Not an actual URL, just a test
         expResp = "Node " + testUrl + " successfully removed"
         payload = {
-            "Host": "test"
+            "Host": testUrl
         }
         response = self.testApi.deleteRepositorySr(payload)
+        print("testSRDeleteRepository response: " + str(response))
         if(response == expResp):
             return True
         return False
@@ -99,6 +104,7 @@ class TestCases() :
             repositoryUrl
         ]
         response = self.testApi.getFilteredConnectionsSr(payload)
+        print("testSRFilteredConnections response: " + str(response))
         if not any (status_obj["host"] == minerUrl for status_obj in response):
             return False
         if not any (status_obj["host"] == repositoryUrl for status_obj in response):
@@ -114,6 +120,7 @@ class TestCases() :
             repositoryUrl
         ]
         response = self.testApi.getFilteredConfigsSr(payload)
+        # print("testSRFilteredConfigs response: " + str(response))
         if not any (status_obj["host"] == minerUrl for status_obj in response):
             return False
         if not any (status_obj["host"] == repositoryUrl for status_obj in response):
@@ -154,6 +161,7 @@ class TestCases() :
     def testFileUpload(self, filePath, logMetadata):
         print("Sending file at path: " + filePath)
         file_rid = self.testApi.uploadResourceToRepo(filePath, logMetadata)
+        print("fileUpload rid: " + str(file_rid))
         success = self.utils.isValidGUID(file_rid)
         return success, file_rid
 
@@ -168,7 +176,7 @@ class TestCases() :
 # Get metadata for the file resource we uploaded
     def testGetFileMDO(self, rid, logMetadata):
         file_mdo = self.testApi.getMetadataFromRepo(rid)
-        print("file_mdo: " + str(file_mdo))
+        # print("file_mdo: " + str(file_mdo))
         if not file_mdo:
             return False, {}
         if(file_mdo == "No resource with that ID" or file_mdo == "Invalid FormData keys"):
@@ -199,11 +207,14 @@ class TestCases() :
         filePath = "./Downloads/downloadedResource.xes"
         fileSaved = self.testApi.getResourceFromRepo(rid, filePath)
         if not fileSaved:
+            print("No resource with that ID")
             return False
         if(not os.path.isfile(filePath)):
+            print("No file saved")
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
+        print("testGetFile success: " + str(success))
         # os.remove(filePath)
         return success
     
@@ -253,9 +264,9 @@ class TestCases() :
         stream_mdo = self.testApi.getMetadataFromRepo(rid)
         print("stream_mdo: " + str(stream_mdo))
         if not stream_mdo:
-            return False, {}
+            return False
         if(stream_mdo == "No resource with that ID" or stream_mdo == "Invalid FormData keys"):
-            return False, {}
+            return False
         
         if(stream_mdo.get("ResourceId") != rid):
             return False
@@ -298,13 +309,17 @@ class TestCases() :
     
 # Test metadata children
     def testChildrenMetadataList(self, mdo_rid_parent, metadata_child):
+        print("testChildrenMetadataList with parent rid: " + mdo_rid_parent)
         metadata_child["Parents"] = [
             {
                 "ResourceId": mdo_rid_parent,
                 "UsedAs": "Test"
             }
         ]
-        mdo_rid_child = self.testUploadMetadata(metadata_child)
+        # md_child_json = json.dumps(metadata_child)
+        ridValid, mdo_rid_child = self.testUploadMetadata(metadata_child)
+        if not ridValid:
+            return False
         upload_success = self.testGetStreamMDO(mdo_rid_child, metadata_child)
         if not upload_success:
             return False
@@ -354,9 +369,11 @@ class TestCases() :
         }
         pid = self.testApi.runMiner(body)
         if("Error" in pid):
-            return False
+            return False, pid
         if(pid == "Invalid request. No miner with that ID. Config may be out of date, consider refreshing the frontend."):
-            return False
+            return False, pid
+        if("Resources defined by body does not match config for the miner" in pid):
+            return False, pid
         
         return True, pid
         
@@ -394,7 +411,7 @@ class TestCases() :
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        os.remove(filePath)
+        # os.remove(filePath)
         return success
 
     
@@ -532,8 +549,8 @@ class TestCases() :
         
         filesEmpty = os.path.getsize(filePath1) <= 0 or os.path.getsize(filePath2) <= 0 # Check if file actually has contents
         
-        os.remove(filePath1)
-        os.remove(filePath2)
+        # os.remove(filePath1)
+        # os.remove(filePath2)
         if(filesEmpty or data1 == data2): # The results should have received updates while we waited
             return False
         return True
@@ -588,7 +605,7 @@ class TestCases() :
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        os.remove(filePath)
+        # os.remove(filePath)
         return success
 
 
@@ -601,7 +618,7 @@ class TestCases() :
             return False
         
         success = os.path.getsize(filePath) > 0 # Check if file actually has contents
-        os.remove(filePath)
+        # os.remove(filePath)
         return success
 
 
@@ -610,7 +627,7 @@ class TestCases() :
     def testCloneStart(self, body):
         cid = self.testApi.runMinerCloning(body)
         print("cloning id: " + cid)
-        success = not "error" in cid
+        success = not "Error retrieving miner from external source: Invalid request" in cid
         return success, cid
 
 
