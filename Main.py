@@ -1,8 +1,14 @@
 from PositiveTests import Positive
 from NegativeTests import Negative
 import json
+import os
 
 class Main() :
+    downloadsDir = "./Downloads"
+    if not os.path.exists(downloadsDir):
+        print("Creating Downloads dir since it does not exist")
+        os.makedirs(downloadsDir)
+
     print("\nRUNNING POSITIVE TESTS\n")
     positive = Positive()
     SRTestDictPos, repoTestDictPos, minerTestDictPos = positive.positiveTestRun()
