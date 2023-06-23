@@ -340,19 +340,7 @@ class Positive() :
 
 
 
-    # ------------------------ PRINT TEST RESULTS --------------------------
-
-        print("\n\nPOSITIVE SERVICE REGISTRY TEST RESULTS: \n")
-        SRTestDictPretty = json.dumps(SRTestDict, indent=2)
-        print(SRTestDictPretty)
-
-        print("\n\nPOSITIVE REPOSITORY TEST RESULTS: \n")
-        repoTestDictPretty = json.dumps(repoTestDict, indent=2)
-        print(repoTestDictPretty)
-
-        print("\n\nPOSITIVE MINER TEST RESULTS: \n")
-        minerTestDictPretty = json.dumps(minerTestDict, indent=2)
-        print(minerTestDictPretty)
+        return SRTestDict, repoTestDict, minerTestDict
 
 
 # Consider if we should do additional cleanup afterwards?

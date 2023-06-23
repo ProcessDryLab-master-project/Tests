@@ -146,15 +146,8 @@ class Negative() :
         success = testCases.testCloneStatus(cid)
         minerTestDict["testCloneStatus"] = not success
 
-
-    # ------------------------ PRINT TEST RESULTS --------------------------
-        print("\n\nNEGATIVE REPOSITORY TEST RESULTS: \n")
-        repoTestDictPretty = json.dumps(repoTestDict, indent=2)
-        print(repoTestDictPretty)
-
-        print("\n\nNEGATIVE MINER TEST RESULTS: \n")
-        minerTestDictPretty = json.dumps(minerTestDict, indent=2)
-        print(minerTestDictPretty)
+    
+        return repoTestDict, minerTestDict
 
 
 # Consider if we should do additional cleanup afterwards?

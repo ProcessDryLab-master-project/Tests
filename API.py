@@ -146,7 +146,7 @@ class API() :
   def getResourceFromRepo(self, rid, path):
     url = urllib.parse.urljoin(self.repositoryResourceURL, rid)
     response = requests.get(url=url, stream=True)
-    if(response.text == "No resource with that ID"):
+    if("No resource with that ID" in response.text):
       return False
 
     with open(path, 'wb') as file:
@@ -163,7 +163,9 @@ class API() :
     url = urllib.parse.urljoin(self.repositoryHistogramURL, rid)
     print("Requesting histogram from: " + url)
     response = requests.post(url=url, stream=True)
-    if(response.text == "No resource with that ID"):
+    if("No file of type EventLog exist for resource id:" in response.text):
+      return False
+    if("No resource with that ID" in response.text):
       return False
 
     with open(path, 'wb') as file:
@@ -176,7 +178,9 @@ class API() :
   def getGraphFromRepo(self, rid, path):
     url = urllib.parse.urljoin(self.repositoryGraphURL, rid)
     response = requests.get(url=url, stream=True)
-    if(response.text == "No resource with that ID"):
+    if("No resource exist for that ID" in response.text):
+      return False
+    if("No resource with that ID" in response.text):
       return False
 
     with open(path, 'wb') as file:
@@ -197,7 +201,7 @@ class API() :
     url = urllib.parse.urljoin(self.repositoryMetadataURL, rid)
     print("url: " + url)
     response = requests.get(url)
-    if(response.text == "No resource with that ID"):
+    if("No resource with that ID" in response.text):
       return False
     mdo = json.loads(response.text)
     return mdo
